@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Mail } from "lucide-react";
+import { postDataHandler } from "@/config/services";
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -17,24 +18,29 @@ const ForgotPassword = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    if (email === "admin@example.com") {
+    try {
+      // Call the API to send OTP
+      const response = await postDataHandler('forgetPassword', { email });
+      
+      // Store email in localStorage for verification
       localStorage.setItem("resetEmail", email);
+      
       toast({
         title: "OTP Sent",
-        description: "A 6-digit OTP has been sent to your email address.",
+        description: response.message || "A 6-digit OTP has been sent to your email address.",
       });
+      
       navigate("/auth/verify-otp");
-    } else {
+    } catch (error) {
+      console.error("Error sending OTP:", error);
       toast({
-        title: "Email Not Found",
-        description: "No admin account found with this email address.",
+        title: "Error",
+        description: "Failed to send OTP. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
@@ -78,9 +84,6 @@ const ForgotPassword = () => {
               <ArrowLeft className="h-4 w-4" />
               Back to Login
             </Link>
-          </div>
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            Demo: Use admin@example.com
           </div>
         </CardContent>
       </Card>

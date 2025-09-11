@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Lock } from "lucide-react";
+import { postDataHandler } from "@/config/services";
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState("");
@@ -13,13 +14,25 @@ const ResetPassword = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     const otpVerified = localStorage.getItem("otpVerified");
-    if (!otpVerified) {
+    const storedEmail = localStorage.getItem("resetEmail");
+    const storedOtp = localStorage.getItem("otp"); // Assuming you stored OTP somewhere
+    
+    if (!otpVerified || !storedEmail) {
       navigate("/auth/forgot-password");
+      return;
+    }
+    
+    setEmail(storedEmail);
+    // If you stored OTP in localStorage during verification, retrieve it
+    if (storedOtp) {
+      setOtp(storedOtp);
     }
   }, [navigate]);
 
@@ -54,19 +67,36 @@ const ResetPassword = () => {
     }
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Clear reset session data
-    localStorage.removeItem("resetEmail");
-    localStorage.removeItem("otpVerified");
+    try {
+      // Call the API to reset password
+      const response = await postDataHandler('resetPassword', {
+        email,
+        otp, // You need to have the OTP stored from the verification step
+        newPassword
+      });
 
-    toast({
-      title: "Password Updated",
-      description: "Your password has been successfully updated!",
-    });
+      // Clear reset session data
+      localStorage.removeItem("resetEmail");
+      localStorage.removeItem("otpVerified");
+      localStorage.removeItem("otp"); // Clear stored OTP if exists
 
-    navigate("/auth/login?message=password-updated");
-    setIsLoading(false);
+      toast({
+        title: "Password Updated",
+        description: response.message || "Your password has been successfully updated!",
+      });
+
+      navigate("/auth/login?message=password-updated");
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast({
+        title: "Error",
+        description: "Failed to reset password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const validation = validatePassword(newPassword);

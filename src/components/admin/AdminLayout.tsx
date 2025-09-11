@@ -7,6 +7,7 @@ const AdminLayout = () => {
 
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isAdminLoggedIn");
+    console.log(isLoggedIn)
     if (!isLoggedIn) {
       navigate("/auth/login");
     }

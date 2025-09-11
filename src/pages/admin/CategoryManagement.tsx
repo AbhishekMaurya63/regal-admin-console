@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,116 +9,178 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Edit, Trash2, FolderTree } from "lucide-react";
-
-// Static category data
-const initialCategories = [
-  {
-    id: 1,
-    name: "Electronics",
-    description: "Electronic devices and gadgets",
-    status: "Active",
-    productCount: 150,
-    createdDate: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "Clothing",
-    description: "Fashion and apparel items",
-    status: "Active",
-    productCount: 89,
-    createdDate: "2024-02-20",
-  },
-  {
-    id: 3,
-    name: "Books",
-    description: "Educational and entertainment books",
-    status: "Inactive",
-    productCount: 23,
-    createdDate: "2024-03-10",
-  },
-];
+import { Plus, Search, Edit, Trash2, FolderTree, Eye, Loader2 } from "lucide-react";
+import { getDataHandlerWithToken, postDataHandlerWithToken, putDataHandlerWithToken, deleteDataHandler } from "@/config/services";
+import ApiConfig from '@/config/apiConfig'
+interface Category {
+  _id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
 
 const CategoryManagement = () => {
-  const [categories, setCategories] = useState(initialCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newCategory, setNewCategory] = useState({
     name: "",
     description: "",
-    status: "Active",
   });
   const { toast } = useToast();
 
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getDataHandlerWithToken('category');
+      setCategories(response);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch categories.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleAddCategory = () => {
-    if (!newCategory.name || !newCategory.description) {
+  const handleAddCategory = async () => {
+    if (!newCategory.name) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields.",
+        description: "Please fill in the category name.",
         variant: "destructive",
       });
       return;
     }
 
-    const category = {
-      id: categories.length + 1,
-      ...newCategory,
-      productCount: 0,
-      createdDate: new Date().toISOString().split('T')[0],
-    };
+    setIsSubmitting(true);
+    try {
+      await postDataHandlerWithToken('category', {
+        name: newCategory.name,
+        description: newCategory.description || undefined
+      });
 
-    setCategories([...categories, category]);
-    setNewCategory({ name: "", description: "", status: "Active" });
-    setIsAddDialogOpen(false);
-    toast({
-      title: "Category Added",
-      description: "New category has been successfully added.",
-    });
+      setNewCategory({ name: "", description: "" });
+      setIsAddDialogOpen(false);
+      
+      // Refresh the category list
+      await fetchCategories();
+      
+      toast({
+        title: "Category Added",
+        description: "New category has been successfully added.",
+      });
+    } catch (error) {
+      console.error("Error adding category:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add category. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleEditCategory = () => {
-    if (!editingCategory.name || !editingCategory.description) {
+  const handleEditCategory = async () => {
+    if (!editingCategory || !editingCategory.name) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields.",
+        description: "Please fill in the category name.",
         variant: "destructive",
       });
       return;
     }
 
-    setCategories(categories.map(category => 
-      category.id === editingCategory.id ? editingCategory : category
-    ));
-    setIsEditDialogOpen(false);
-    setEditingCategory(null);
-    toast({
-      title: "Category Updated",
-      description: "Category has been successfully updated.",
-    });
+    setIsSubmitting(true);
+    try {
+      const endpoint = ApiConfig.changeCategory(editingCategory._id)
+      console.log(editingCategory._id, endpoint)
+      await putDataHandlerWithToken(endpoint, {
+        name: editingCategory.name,
+        description: editingCategory.description || undefined
+      },null,true);
+
+      setIsEditDialogOpen(false);
+      setEditingCategory(null);
+      
+      // Refresh the category list
+      await fetchCategories();
+      
+      toast({
+        title: "Category Updated",
+        description: "Category has been successfully updated.",
+      });
+    } catch (error) {
+      console.error("Error updating category:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update category. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDeleteCategory = (id: number) => {
-    setCategories(categories.filter(category => category.id !== id));
-    toast({
-      title: "Category Deleted",
-      description: "Category has been successfully deleted.",
-    });
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      const endpoint = ApiConfig.changeCategory(id)
+      await deleteDataHandler(endpoint, true);
+      
+      // Refresh the category list
+      await fetchCategories();
+      
+      toast({
+        title: "Category Deleted",
+        description: "Category has been successfully deleted.",
+      });
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete category. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getStatusBadge = (status: string) => {
+  const handleViewCategory = (category: Category) => {
+    setSelectedCategory(category);
+    setIsViewDialogOpen(true);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  if (isLoading) {
     return (
-      <Badge variant={status === "Active" ? "default" : "secondary"}>
-        {status}
-      </Badge>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -145,7 +207,7 @@ const CategoryManagement = () => {
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Category Name</Label>
+                <Label htmlFor="name">Category Name *</Label>
                 <Input
                   id="name"
                   value={newCategory.name}
@@ -163,19 +225,8 @@ const CategoryManagement = () => {
                   rows={3}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select value={newCategory.status} onValueChange={(value) => setNewCategory({ ...newCategory, status: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={handleAddCategory} className="w-full">
+              <Button onClick={handleAddCategory} className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Add Category
               </Button>
             </div>
@@ -208,24 +259,29 @@ const CategoryManagement = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Products</TableHead>
                 <TableHead>Created Date</TableHead>
+                <TableHead>Updated Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredCategories.map((category) => (
-                <TableRow key={category.id}>
+                <TableRow key={category._id}>
                   <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell className="max-w-xs truncate">{category.description}</TableCell>
-                  <TableCell>{getStatusBadge(category.status)}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{category.productCount}</Badge>
+                  <TableCell className="max-w-xs truncate">
+                    {category.description || "No description"}
                   </TableCell>
-                  <TableCell>{category.createdDate}</TableCell>
+                  <TableCell>{formatDate(category.createdAt)}</TableCell>
+                  <TableCell>{formatDate(category.updatedAt)}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleViewCategory(category)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                         <DialogTrigger asChild>
                           <Button 
@@ -246,7 +302,7 @@ const CategoryManagement = () => {
                           {editingCategory && (
                             <div className="space-y-4">
                               <div className="space-y-2">
-                                <Label htmlFor="edit-name">Category Name</Label>
+                                <Label htmlFor="edit-name">Category Name *</Label>
                                 <Input
                                   id="edit-name"
                                   value={editingCategory.name}
@@ -257,24 +313,13 @@ const CategoryManagement = () => {
                                 <Label htmlFor="edit-description">Description</Label>
                                 <Textarea
                                   id="edit-description"
-                                  value={editingCategory.description}
+                                  value={editingCategory.description || ""}
                                   onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
                                   rows={3}
                                 />
                               </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="edit-status">Status</Label>
-                                <Select value={editingCategory.status} onValueChange={(value) => setEditingCategory({ ...editingCategory, status: value })}>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Active">Active</SelectItem>
-                                    <SelectItem value="Inactive">Inactive</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <Button onClick={handleEditCategory} className="w-full">
+                              <Button onClick={handleEditCategory} className="w-full" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                 Update Category
                               </Button>
                             </div>
@@ -284,7 +329,7 @@ const CategoryManagement = () => {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => handleDeleteCategory(category.id)}
+                        onClick={() => handleDeleteCategory(category._id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -296,6 +341,42 @@ const CategoryManagement = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* View Category Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Category Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about this category
+            </DialogDescription>
+          </DialogHeader>
+          {selectedCategory && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="font-semibold">Category Name</Label>
+                <p>{selectedCategory.name}</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Description</Label>
+                <p>{selectedCategory.description || "No description provided"}</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Created Date</Label>
+                <p>{formatDate(selectedCategory.createdAt)}</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Last Updated</Label>
+                <p>{formatDate(selectedCategory.updatedAt)}</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Category ID</Label>
+                <p className="text-sm text-muted-foreground">{selectedCategory._id}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

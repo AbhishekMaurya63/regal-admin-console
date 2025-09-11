@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { postDataHandlerWithToken } from "@/config/services";
 import { 
   LayoutDashboard, 
   Users, 
@@ -11,12 +12,15 @@ import {
   LogOut,
   Shield
 } from "lucide-react";
+import { useState } from "react";
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const handleLogout = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const handleLogout = async () => {
+    try {
+    await postDataHandlerWithToken('logout')
     localStorage.removeItem("isAdminLoggedIn");
     localStorage.removeItem("adminEmail");
     toast({
@@ -24,6 +28,16 @@ const Sidebar = () => {
       description: "You have been successfully logged out.",
     });
     navigate("/auth/login");
+    }catch (error) {
+      console.error("Error sending OTP:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send OTP. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const menuItems = [

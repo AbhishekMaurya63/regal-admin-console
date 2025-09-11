@@ -5,23 +5,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Shield, RotateCcw } from "lucide-react";
+import { postDataHandler } from "@/config/services";
 
 const VerifyOtp = () => {
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [canResend, setCanResend] = useState(false);
+  const [email, setEmail] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const VALID_OTP = "123456"; // Static OTP for demo
-
   useEffect(() => {
-    const email = localStorage.getItem("resetEmail");
-    if (!email) {
+    const storedEmail = localStorage.getItem("resetEmail");
+    if (!storedEmail) {
       navigate("/auth/forgot-password");
       return;
     }
+    setEmail(storedEmail);
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -53,37 +54,54 @@ const VerifyOtp = () => {
     }
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    if (otp === VALID_OTP) {
+    try {
+      // Call the API to verify OTP
+      const response = await postDataHandler('varifyOTP', { email, otp });
+      
       localStorage.setItem("otpVerified", "true");
+      localStorage.setItem("otp", otp);
       toast({
         title: "OTP Verified",
-        description: "You can now reset your password.",
+        description: response.message || "You can now reset your password.",
       });
       navigate("/auth/reset-password");
-    } else {
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
       toast({
         title: "Invalid OTP",
         description: "The OTP you entered is incorrect.",
         variant: "destructive",
       });
       setOtp("");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleResendOTP = async () => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    setTimeLeft(300);
-    setCanResend(false);
-    toast({
-      title: "OTP Resent",
-      description: "A new OTP has been sent to your email.",
-    });
-    setIsLoading(false);
+    try {
+      // Call the API to resend OTP
+      await postDataHandler('forgetPassword', { email });
+      
+      setTimeLeft(300);
+      setCanResend(false);
+      toast({
+        title: "OTP Resent",
+        description: "A new OTP has been sent to your email.",
+      });
+    } catch (error) {
+      console.error("Error resending OTP:", error);
+      toast({
+        title: "Error",
+        description: "Failed to resend OTP. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -95,7 +113,7 @@ const VerifyOtp = () => {
           </div>
           <CardTitle className="text-2xl font-bold">Verify OTP</CardTitle>
           <CardDescription>
-            Enter the 6-digit code sent to your email address
+            Enter the 6-digit code sent to {email}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -152,9 +170,6 @@ const VerifyOtp = () => {
                 </p>
               )}
             </div>
-          </div>
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            Demo OTP: 123456
           </div>
         </CardContent>
       </Card>

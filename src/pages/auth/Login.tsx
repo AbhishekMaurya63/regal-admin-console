@@ -6,42 +6,45 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Shield } from "lucide-react";
+import { postDataHandler } from "@/config/services";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Static admin credentials
-  const ADMIN_EMAIL = "admin@example.com";
-  const ADMIN_PASSWORD = "admin123";
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const loginHandler = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     setIsLoading(true);
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      localStorage.setItem("isAdminLoggedIn", "true");
-      localStorage.setItem("adminEmail", email);
+    console.log(identifier, password);
+    
+    try {
+      const response = await postDataHandler('passwordLogin', { identifier, password });
+      console.log("API Response:", response);
+      localStorage.setItem("isAdminLoggedIn",'true');
+      localStorage.setItem("authToken", response.token);
+      sessionStorage.setItem("auth", JSON.stringify({ authToken: response.token }));
+      
       toast({
         title: "Login Successful",
         description: "Welcome to the admin dashboard!",
       });
+      
       navigate("/admin/dashboard");
-    } else {
+    } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Login Failed",
-        description: "Invalid email or password",
+        description: "Invalid credentials or server error",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
@@ -57,15 +60,15 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={loginHandler} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="identifier">Username or Email</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="admin@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="identifier"
+                type="text"
+                placeholder="Enter your username or email"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
               />
             </div>
@@ -111,9 +114,6 @@ const Login = () => {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            Demo credentials: admin@example.com / admin123
-          </div>
         </CardContent>
       </Card>
     </div>
