@@ -460,86 +460,101 @@ const QueryManagement = () => {
       </div>
 
       {/* View Query Modal */}
-      {isViewDialogOpen && selectedQuery && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-auto">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Query Details</h2>
-              <p className="text-gray-600">Full query information and history</p>
+     {isViewDialogOpen && selectedQuery && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-auto">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900">Query Details</h2>
+        <p className="text-gray-600">Full query information and history</p>
+        <div className="flex items-center gap-2 mt-2">
+          <p className="text-sm font-medium text-gray-900">Order Id: {selectedQuery._id}</p>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(selectedQuery._id);
+              // Optional: Add toast notification or state change to show copied feedback
+            }}
+            className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
+            title="Copy Order ID"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div className="p-6 space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-900">{selectedQuery.customer.name}</p>
+            <p className="text-sm font-medium text-gray-900">{selectedQuery._id}</p>
+            <p className="text-sm text-gray-500">{selectedQuery.customer.email}</p>
+            <p className="text-sm text-gray-500">{selectedQuery.customer.phone}</p>
+            <p className="text-sm text-gray-500">{selectedQuery.customer.address}</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status & Actions</label>
+            <div className="flex gap-2 mb-3">
+              {getStatusBadge(selectedQuery.status)}
             </div>
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                  <p className="text-sm font-medium text-gray-900">{selectedQuery.customer.name}</p>
-                  <p className="text-sm text-gray-500">{selectedQuery.customer.email}</p>
-                  <p className="text-sm text-gray-500">{selectedQuery.customer.phone}</p>
-                  <p className="text-sm text-gray-500">{selectedQuery.customer.address}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status & Actions</label>
-                  <div className="flex gap-2 mb-3">
-                    {getStatusBadge(selectedQuery.status)}
-                  </div>
-                  <select 
-                    value={selectedQuery.status} 
-                    onChange={(e) => handleStatusChange(selectedQuery._id, e.target.value)}
-                    className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Order Details</label>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedQuery.order.items.length} items • Total: ₹{selectedQuery.order.totalAmount}
-                  </p>
-                  <div className="mt-2 space-y-2">
-                    {selectedQuery.order.items.map(item => (
-                      <div key={item._id} className="flex items-center gap-3 text-sm">
-                        <img src={item.thumbnail} alt={item.productName} className="w-10 h-10 object-cover rounded" />
-                        <div>
-                          <p className="font-medium">{item.productName}</p>
-                          <p className="text-gray-500">Size: {item.size}, Color: {item.color}, Qty: {item.quantity}</p>
-                          <p className="text-gray-500">Price: ₹{item.price} each</p>
-                        </div>
-                      </div>
-                    ))}
+            <select 
+              value={selectedQuery.status} 
+              onChange={(e) => handleStatusChange(selectedQuery._id, e.target.value)}
+              className="w-full text-black px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Order Details</label>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <p className="text-sm font-medium text-gray-900">
+              {selectedQuery.order.items.length} items • Total: ₹{selectedQuery.order.totalAmount}
+            </p>
+            <div className="mt-2 space-y-2">
+              {selectedQuery.order.items.map(item => (
+                <div key={item._id} className="flex items-center gap-3 text-sm">
+                  <img src={item.thumbnail} alt={item.productName} className="w-10 h-10 object-cover rounded" />
+                  <div>
+                    <p className="font-medium">{item.productName}</p>
+                    <p className="text-gray-500">Size: {item.size}, Color: {item.color}, Qty: {item.quantity}</p>
+                    <p className="text-gray-500">Price: ₹{item.price} each</p>
                   </div>
                 </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Message</label>
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-900">{selectedQuery.additionalMessage || "No additional message provided"}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
-                <div>Created: {formatDate(selectedQuery.createdAt)}</div>
-                <div>Last Updated: {formatDate(selectedQuery.updatedAt)}</div>
-              </div>
-              
-              <div className="flex gap-2 pt-4">
-                <button
-                  onClick={() => setIsViewDialogOpen(false)}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md"
-                >
-                  Close
-                </button>
-              </div>
+              ))}
             </div>
           </div>
         </div>
-      )}
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Additional Message</label>
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-900">{selectedQuery.additionalMessage || "No additional message provided"}</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4 text-sm text-gray-500">
+          <div>Created: {formatDate(selectedQuery.createdAt)}</div>
+          <div>Last Updated: {formatDate(selectedQuery.updatedAt)}</div>
+        </div>
+        
+        <div className="flex gap-2 pt-4">
+          <button
+            onClick={() => setIsViewDialogOpen(false)}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Reply Modal */}
       {/* {isReplyDialogOpen && selectedQuery && (
