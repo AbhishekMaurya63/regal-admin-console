@@ -467,7 +467,7 @@ const QueryManagement = () => {
         <h2 className="text-xl font-semibold text-gray-900">Query Details</h2>
         <p className="text-gray-600">Full query information and history</p>
         <div className="flex items-center gap-2 mt-2">
-          <p className="text-sm font-medium text-gray-900">Order Id: {selectedQuery._id}</p>
+          <p className="text-sm font-medium text-blue-900">Order Id: {selectedQuery._id}</p>
           <button
             onClick={() => {
               navigator.clipboard.writeText(selectedQuery._id);
@@ -486,7 +486,6 @@ const QueryManagement = () => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-sm font-medium text-gray-900">{selectedQuery.customer.name}</p>
-            <p className="text-sm font-medium text-gray-900">{selectedQuery._id}</p>
             <p className="text-sm text-gray-500">{selectedQuery.customer.email}</p>
             <p className="text-sm text-gray-500">{selectedQuery.customer.phone}</p>
             <p className="text-sm text-gray-500">{selectedQuery.customer.address}</p>
