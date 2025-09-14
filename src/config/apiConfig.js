@@ -36,5 +36,7 @@ const ApiConfig = {
   query: `${url}/api/queries`,
   queryById:(id)=> `${url}/api/queries/${id}`,
   updateQuery:(id)=>`${url}/api/queries/${id}/status`,
+
+  analysis:`${url}/api/analytics/reports`,
 }
 export default ApiConfig;
